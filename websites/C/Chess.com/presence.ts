@@ -32,6 +32,26 @@ const resolvers: Resolver[] = [
   puzzleResolver,
 ]
 
+// --- Persistent session timer (survives page reloads / new games / reviews) ---
+const SESSION_KEY = 'premid_chess_session_start'
+const SESSION_TIMEOUT_HOURS = 24 // starts a "new session" after this long
+
+function getSessionTimestamp(): number {
+  const stored = localStorage.getItem(SESSION_KEY)
+  const now = Math.floor(Date.now() / 1000)
+
+  if (stored) {
+    const savedTime = Number.parseInt(stored, 10)
+    const hoursSince = (now - savedTime) / 3600
+    if (hoursSince < SESSION_TIMEOUT_HOURS) {
+      return savedTime
+    }
+  }
+
+  localStorage.setItem(SESSION_KEY, now.toString())
+  return now
+}
+
 presence.on('UpdateData', async () => {
   const pathname = document.location.pathname
   const doc = document
@@ -196,25 +216,11 @@ presence.on('UpdateData', async () => {
         presenceData.details = strings.puzzle_solving
       }
     }
-
-    if (activeResolver.getTimestamps) {
-      const times = activeResolver.getTimestamps(strings, doc)
-      if (times) {
-        presenceData.startTimestamp = times.start
-        presenceData.endTimestamp = times.end
-      }
-      else if (
-        activeResolver === videoResolver
-        && activeResolver.getType
-        && activeResolver.getType(strings, doc) === ActivityType.Watching
-      ) {
-        delete presenceData.startTimestamp
-        if (!presenceData.smallImageText) {
-          presenceData.smallImageText = strings.pause
-        }
-      }
-    }
   }
+
+  // --- Overwrite timestamps: use one continuous session timer instead ---
+  presenceData.startTimestamp = getSessionTimestamp()
+  delete presenceData.endTimestamp
 
   if (presenceData.details) {
     presence.setActivity(presenceData)
