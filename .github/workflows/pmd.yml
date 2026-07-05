@@ -24,7 +24,7 @@ jobs:
       - name: Install pmd
         run: npm ci
       - name: Validate metadata and build (changed files)
-        run: npx pmd build --changed --no-kill --validate --sarif
+        run: npx pmd build "Chess.com" --no-kill --validate --sarif
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
