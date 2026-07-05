@@ -19,3 +19,4 @@ jobs:
         with:
           name: chess-dist
           path: websites/C/Chess.com/dist
+          
